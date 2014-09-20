@@ -1,0 +1,52 @@
+{
+    "apiVersion": "0",
+    "swaggerVersion": "1.2",
+    "basePath": "http://localhost:8080",
+    "resourcePath": "/foo",
+    "apis": [
+        {
+            "path": "/foo",
+            "description": "",
+            "operations": [
+                {
+                    "method": "GET",
+                    "nickname": "sayHello",
+                    "type": "string",
+                    "parameters": [
+                        {
+                            "paramType": "query",
+                            "name": "name",
+                            "type": "string",
+                            "defaultValue": "World"
+                        }
+                    ],
+                    "responseMessages": [
+                        {
+                            "code": 404,
+                            "message": "not found"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "path": "/foo/annotated",
+            "description": "",
+            "operations": [
+                {
+                    "method": "POST",
+                    "nickname": "sayHello",
+                    "type": "string",
+                    "parameters": [
+                        {
+                            "paramType": "query",
+                            "name": "name",
+                            "type": "string",
+                            "required" : null
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

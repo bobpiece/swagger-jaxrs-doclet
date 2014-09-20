@@ -28,10 +28,15 @@ import com.carma.swagger.doclet.model.Model;
 import com.carma.swagger.doclet.model.ResourceListing;
 import com.carma.swagger.doclet.model.ResourceListingAPI;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.io.ByteStreams;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
+
+import javax.annotation.Nullable;
 
 public class JaxRsAnnotationParser {
 
@@ -133,11 +138,10 @@ public class JaxRsAnnotationParser {
 						}
 					});
 
-					// The idea (and need) for the declaration is that "/foo" and "/foo/annotated" are stored in separate
-					// Api classes but are part of the same resource.
-					declarations.add(new ApiDeclaration(SWAGGER_VERSION, this.options.getApiVersion(), this.options.getApiBasePath(),
-							classParser.getRootPath(), apis, models, priorityVal, description));
-				}
+          mergeDeclarations(declarations, new ApiDeclaration(SWAGGER_VERSION, this.options.getApiVersion(), this.options.getApiBasePath(),
+                  classParser.getRootPath(), apis, models, priorityVal, description));
+
+        }
 			}
 
 			// sort the api declarations if needed
@@ -197,7 +201,56 @@ public class JaxRsAnnotationParser {
 		}
 	}
 
-	private void writeApis(Collection<ApiDeclaration> apis) throws IOException {
+  private void mergeDeclarations (List<ApiDeclaration> declarations, ApiDeclaration apiDeclaration) {
+    Optional<ApiDeclaration> existingDeclaration = findExisting(declarations, apiDeclaration.getResourcePath());
+    if(existingDeclaration.isPresent()) {
+      mergeApis(existingDeclaration.get(), apiDeclaration.getApis());
+      mergeModels(existingDeclaration.get(), apiDeclaration.getModels());
+    } else {
+      declarations.add(apiDeclaration);
+    }
+  }
+
+  private void mergeModels (ApiDeclaration existingApiDeclaration, Map<String, Model> newModels) {
+    if(newModels == null) return;
+    Map<String, Model> modelMap = new HashMap<String, Model>();
+    modelMap.putAll(existingApiDeclaration.getModels());
+    modelMap.putAll(newModels);
+    existingApiDeclaration.setModels(modelMap);
+  }
+
+  private void mergeApis(final ApiDeclaration existingApiDeclaration, final List<Api> newApis) {
+    List<Api> oldApis = existingApiDeclaration.getApis();
+    for (Api newApi : newApis) {
+      Optional<Api> existingApi = findExistingApi(oldApis, newApi.getPath());
+      if(existingApi.isPresent()) {
+        existingApi.get().getOperations().addAll(newApi.getOperations());
+      } else {
+        oldApis.add(newApi);
+      }
+    }
+  }
+
+  private Optional<ApiDeclaration> findExisting (List<ApiDeclaration> declarations, final String resourcePath) {
+    return FluentIterable.from(declarations).filter(new Predicate<ApiDeclaration>() {
+      @Override
+      public boolean apply (@Nullable ApiDeclaration apiDeclaration) {
+        return apiDeclaration.getResourcePath().equals(resourcePath);
+      }
+    }).first();
+  }
+
+  private Optional<Api> findExistingApi (List<Api> apiList, final String path) {
+    return FluentIterable.from(apiList).filter(new Predicate<Api>() {
+      @Override
+      public boolean apply (@Nullable Api api) {
+        return api.getPath().equals(path);
+      }
+    }).first();
+  }
+
+
+  private void writeApis(Collection<ApiDeclaration> apis) throws IOException {
 		List<ResourceListingAPI> resources = new LinkedList<ResourceListingAPI>();
 		File outputDirectory = this.options.getOutputDirectory();
 		Recorder recorder = this.options.getRecorder();
