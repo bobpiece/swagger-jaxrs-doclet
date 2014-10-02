@@ -32,7 +32,7 @@ import com.sun.javadoc.RootDoc;
 public class JaxRsAnnotationParser {
 
 	private static final String SWAGGER_VERSION = "1.2";
-	private static final String SWAGGER_UI_VERSION = "2.0.23";
+	private static final String SWAGGER_UI_VERSION = "2.1.0";
 
 	private final DocletOptions options;
 	private final RootDoc rootDoc;
